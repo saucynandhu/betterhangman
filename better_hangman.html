@@ -1,0 +1,679 @@
+        <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Better Hangman</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 3em;
+            margin-bottom: 10px;
+            color: #fff;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 50px;
+            font-size: 1.1em;
+        }
+
+        .game-area {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 16px;
+            padding: 50px;
+            margin-bottom: 30px;
+        }
+
+        .word-display {
+            font-family: 'Courier New', monospace;
+            font-size: 3em;
+            text-align: center;
+            letter-spacing: 15px;
+            margin-bottom: 50px;
+            min-height: 70px;
+            color: #fff;
+        }
+
+        .letter-space {
+            display: inline-block;
+            border-bottom: 3px solid #333;
+            width: 50px;
+            margin: 0 5px;
+            text-align: center;
+        }
+
+        .revealed {
+            color: #fff;
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            gap: 8px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .key {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.2em;
+            text-align: center;
+            color: #e0e0e0;
+        }
+
+        .key:hover {
+            background: #252525;
+            border-color: #444;
+            transform: translateY(-2px);
+        }
+
+        .key.used {
+            background: #0a0a0a;
+            border-color: #1a1a1a;
+            color: #444;
+            cursor: not-allowed;
+        }
+
+        .key.wrong {
+            background: #1a0a0a;
+            border-color: #4a1a1a;
+            color: #ff4444;
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 12px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .hangman {
+            text-align: center;
+            font-size: 6em;
+            margin-bottom: 30px;
+            min-height: 100px;
+        }
+
+        .message {
+            text-align: center;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            min-height: 30px;
+            color: #888;
+        }
+
+        .game-over {
+            text-align: center;
+            padding: 40px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 16px;
+            display: none;
+        }
+
+        .game-over.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .game-over h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .game-over.win h2 {
+            color: #4ade80;
+        }
+
+        .game-over.lose h2 {
+            color: #ff4444;
+        }
+
+        .answer {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5em;
+            margin: 20px 0;
+            color: #fff;
+            letter-spacing: 3px;
+        }
+
+        .adaptation-history {
+            margin-top: 30px;
+            padding: 25px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        .adaptation-history h3 {
+            color: #fff;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .adaptation-step {
+            padding: 15px;
+            margin-bottom: 12px;
+            background: #111;
+            border-left: 3px solid #ff4444;
+            border-radius: 6px;
+        }
+
+        .adaptation-step.correct {
+            border-left-color: #4ade80;
+        }
+
+        .step-number {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .step-guess {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .step-guess.wrong {
+            color: #ff4444;
+        }
+
+        .step-guess.correct {
+            color: #4ade80;
+        }
+
+        .step-word {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        .word-change {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .old-word {
+            color: #888;
+            text-decoration: line-through;
+        }
+
+        .arrow {
+            color: #ff4444;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            background: #fff;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,255,255,0.3);
+        }
+
+        .twist-info {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 12px;
+            color: #888;
+        }
+
+        .twist-info strong {
+            color: #fff;
+        }
+
+        .word-count {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Better Hangman</h1>
+        <div class="subtitle">The AI is thinking of a word. Each wrong guess brings YOU closer to hanging.</div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">WORD LENGTH</div>
+                <div class="stat-value" id="wordLength">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">WRONG GUESSES</div>
+                <div class="stat-value" id="wrongCount">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">REMAINING</div>
+                <div class="stat-value" id="remainingCount">6</div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="hangman" id="hangman">😊</div>
+            <div class="message" id="message">Start guessing letters...</div>
+            <div class="word-display" id="wordDisplay"></div>
+        </div>
+
+        <div class="keyboard" id="keyboard"></div>
+
+        <div class="game-over" id="gameOver">
+            <h2 id="gameOverTitle">YOU WON!</h2>
+            <div class="answer">The word was: <strong id="finalWord"></strong></div>
+            <div id="gameStats"></div>
+            <button class="btn" onclick="location.reload()">Play Again</button>
+        </div>
+
+        <div class="twist-info">
+            <strong>THE TWIST:</strong> Every wrong letter you guess, the AI gets SMARTER and changes the word to make you lose. 
+            But it must stay consistent with letters you've already found. Can you outsmart it?
+            <div class="word-count" id="wordPoolSize">Loading word database...</div>
+        </div>
+    </div>
+
+    <script>
+        let words = [];
+
+        let isLoadingWords = false;
+
+        async function loadMassiveWordList() {
+            if (isLoadingWords) return;
+            isLoadingWords = true;
+
+            try {
+                document.getElementById('message').textContent = 'Loading word database...';
+                // If opened via file://, fetch() will fail due to browser security.
+                // Automatically fall back to an internal mini word list (no manual loading).
+                if (window.location.protocol === 'file:') {
+                    words = [
+                        'ABSTRACT','ACCEPT','ACCOUNT','ADJUST','ADVICE','ANCIENT','ANOTHER','ARCHIVE','BALANCE','BATTERY',
+                        'BENEATH','BENEFIT','BETWEEN','BOTTLE','BRIDGE','CAPABLE','CAPTAIN','CAPTURE','CERTAIN','CHAPTER',
+                        'CHARITY','CHICKEN','CITIZEN','CLIMATE','COLLECT','COMBINE','COMFORT','COMMAND','COMMENT','COMPANY',
+                        'COMPETE','COMPLETE','CONCEPT','CONDUCT','CONFIRM','CONNECT','CONSIDER','CONTAIN','CONTENT','CONTEXT',
+                        'CONTROL','CONVERT','COUNTER','COUNTRY','CRYSTAL','CURRENT','DEFAULT','DEFENSE','DELIVER','DENSITY',
+                        'DEPOSIT','DESKTOP','DESTROY','DEVELOP','DIAMOND','DIGITAL','DISPLAY','DYNAMIC','ELEMENT','EMOTION',
+                        'ENHANCE','EVENING','EXAMINE','EXAMPLE','EXPENSE','EXPLAIN','EXPLORE','EXTREME','FASHION','FEATURE',
+                        'FESTIVAL','FICTION','FINANCE','FORTUNE','FORWARD','FREEDOM','FUNCTION','GALLERY','GENERAL','GENUINE',
+                        'GESTURE','GLACIER','GLIMPSE','GRAVITY','HARMONY','HARVEST','HEALTHY','HISTORY','HORIZON','HUMANITY',
+                        'IMAGINE','IMPROVE','INITIAL','INSPIRE','INSTANT','JOURNEY','JUSTICE','KINGDOM','LANGUAGE','LIBERTY',
+                        'MACHINE','MEASURE','MESSAGE','MILLION','MISSION','MYSTERY','NETWORK','NOTHING','OPERATE','OPINION',
+                        'ORGANIC','OUTLINE','PACKAGE','PARTNER','PASSION','PATTERN','PAYMENT','PERFECT','PERFORM','PICTURE',
+                        'PLASTIC','PLATFORM','PORTION','PREDICT','PREPARE','PRESENT','PREVENT','PRIMARY','PRIVATE','PROCESS',
+                        'PROFILE','PROGRAM','PROJECT','PROMISE','PROTECT','PROTEIN','PROVIDE','PURPOSE','QUALITY','QUARTER',
+                        'QUOTING','RADICAL','RAINBOW','REALITY','RECEIVE','REGULAR','RELEASE','REPLACE','REQUEST','REQUIRE',
+                        'RESERVE','RESPECT','RESPOND','RESTORE','REVERSE','ROUTINE','SCIENCE','SECTION','SEGMENT','SERVICE',
+                        'SESSION','SHELTER','SILENCE','SIMILAR','SOCIETY','SPEAKER','SPECIAL','STATION','STRANGE','STRETCH',
+                        'STUDENT','SUBJECT','SUCCESS','SUPPORT','SUPREME','SURFACE','SURPLUS','SURVIVE','TEACHER','TENSION',
+                        'THEATER','THERAPY','THOUGHT','THROUGH','TONIGHT','TRAFFIC','TRAINER','TRANSIT','TROUBLE','ULTIMATE',
+                        'UNIVERSE','UNKNOWN','UNUSUAL','UPGRADE','VALUABLE','VEHICLE','VERSION','VICTORY','VILLAGE','VIRTUAL',
+                        'VISIBLE','WAITING','WARNING','WEATHER','WELCOME','WESTERN','WHETHER','WHISPER','WITNESS','WORKING','WRITING'
+                    ];
+                    document.getElementById('message').textContent = `Loaded ${words.length} built-in words. For full pool, run via a local server.`;
+                    isLoadingWords = false;
+                    startGameAfterLoad();
+                    return;
+                }
+                
+                // Load words from words.txt (one word per line)
+                const response = await fetch('words.txt');
+                const text = await response.text();
+                
+                // Split by newlines to get the word list
+                const wordList = text.split('\n').map(w => w.trim()).filter(Boolean);
+                
+                words = wordList
+                    .map(w => w.trim().toUpperCase())
+                    .filter(w => 
+                        w.length >= 5 && 
+                        w.length <= 10 && 
+                        /^[A-Z]+$/.test(w)
+                    );
+                
+                words = [...new Set(words)];
+                
+                document.getElementById('message').textContent = `Loaded ${words.length.toLocaleString()} words! Start guessing...`;
+                console.log(`Word pool size: ${words.length} words`);
+                
+            } catch (error) {
+                console.error('Failed to load words.txt:', error);
+                document.getElementById('message').textContent = 'Error loading words.txt. Please run via a local server and refresh.';
+                // Re-throw so callers can avoid starting the game with an empty pool
+                throw error;
+            }
+            
+            isLoadingWords = false;
+        }
+
+        const hangmanStages = ['😊', '😐', '😟', '😨', '😰', '😵', '💀'];
+        
+        let currentWord = '';
+        let possibleWords = [];
+        let guessedLetters = new Set();
+        let wrongLetters = new Set();
+        let wrongGuesses = 0;
+        let revealedPositions = new Set();
+        const maxWrong = 6;
+        let adaptationHistory = [];
+
+        function initGame() {
+            if (words.length === 0) {
+                loadMassiveWordList().then(() => {
+                    if (words.length > 0) startGameAfterLoad();
+                }).catch(() => {
+                    // message already set in loader; don't start
+                });
+            } else {
+                startGameAfterLoad();
+            }
+        }
+
+        function startGameAfterLoad() {
+            if (!words || words.length === 0) {
+                return;
+            }
+            possibleWords = [...words];
+            currentWord = possibleWords[Math.floor(Math.random() * possibleWords.length)];
+            adaptationHistory = [{ word: currentWord, guess: null, correct: null }];
+            
+            document.getElementById('wordLength').textContent = currentWord.length;
+            document.getElementById('wrongCount').textContent = '0';
+            document.getElementById('remainingCount').textContent = maxWrong;
+            document.getElementById('wordPoolSize').textContent = `Word pool: ${words.length.toLocaleString()} words loaded!`;
+            
+            renderWord();
+            createKeyboard();
+        }
+
+        function renderWord() {
+            const display = document.getElementById('wordDisplay');
+            display.innerHTML = '';
+            
+            for (let i = 0; i < currentWord.length; i++) {
+                const span = document.createElement('span');
+                span.className = 'letter-space';
+                
+                if (revealedPositions.has(i)) {
+                    span.textContent = currentWord[i];
+                    span.classList.add('revealed');
+                } else {
+                    span.textContent = '_';
+                }
+                
+                display.appendChild(span);
+            }
+        }
+
+        function createKeyboard() {
+            const keyboard = document.getElementById('keyboard');
+            // Clear any existing keys to avoid duplicates
+            keyboard.innerHTML = '';
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            
+            letters.forEach(letter => {
+                const key = document.createElement('div');
+                key.className = 'key';
+                key.textContent = letter;
+                key.id = `key-${letter}`;
+                key.onclick = () => guessLetter(letter, key);
+                keyboard.appendChild(key);
+            });
+        }
+
+        function guessLetter(letter, keyElement) {
+            if (guessedLetters.has(letter) || keyElement.classList.contains('used')) return;
+            
+            guessedLetters.add(letter);
+            keyElement.classList.add('used');
+            
+            const letterInWord = currentWord.includes(letter);
+            
+            if (letterInWord) {
+                for (let i = 0; i < currentWord.length; i++) {
+                    if (currentWord[i] === letter) {
+                        revealedPositions.add(i);
+                    }
+                }
+                
+                adaptationHistory.push({ word: currentWord, guess: letter, correct: true });
+                
+                document.getElementById('message').textContent = `✓ Found ${letter}!`;
+                renderWord();
+                
+                if (revealedPositions.size === currentWord.length) {
+                    endGame(true);
+                }
+            } else {
+                wrongGuesses++;
+                keyElement.classList.add('wrong');
+                wrongLetters.add(letter);
+                
+                const oldWord = currentWord;
+                adaptWord(letter);
+                adaptationHistory.push({ 
+                    word: currentWord, 
+                    guess: letter, 
+                    correct: false,
+                    oldWord: oldWord
+                });
+                
+                document.getElementById('wrongCount').textContent = wrongGuesses;
+                document.getElementById('remainingCount').textContent = maxWrong - wrongGuesses;
+                document.getElementById('hangman').textContent = hangmanStages[wrongGuesses];
+                document.getElementById('message').textContent = `✗ No ${letter}... AI adapted the word!`;
+                
+                if (wrongGuesses >= maxWrong) {
+                    endGame(false);
+                }
+            }
+        }
+
+        function adaptWord(wrongLetter) {
+            const pattern = Array(currentWord.length).fill(null);
+            
+            for (let pos of revealedPositions) {
+                pattern[pos] = currentWord[pos];
+            }
+            
+            const candidates = possibleWords.filter(word => {
+                if (word.length !== currentWord.length) return false;
+                // Exclude any letter that has been guessed wrong previously
+                for (let wl of wrongLetters) {
+                    if (word.includes(wl)) return false;
+                }
+                
+                for (let i = 0; i < pattern.length; i++) {
+                    if (pattern[i] !== null && word[i] !== pattern[i]) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            if (candidates.length > 0) {
+                const uncommonLetters = candidates.map(word => {
+                    const uniqueLetters = new Set(word.split(''));
+                    const commonLetters = 'ETAOINSHRDLU';
+                    let score = 0;
+                    for (let letter of uniqueLetters) {
+                        if (!guessedLetters.has(letter)) {
+                            score += commonLetters.includes(letter) ? 1 : 3;
+                        }
+                    }
+                    return { word, score };
+                });
+                
+                uncommonLetters.sort((a, b) => b.score - a.score);
+                // Prefer switching to a different word if possible
+                const firstDifferent = uncommonLetters.find(c => c.word !== currentWord);
+                currentWord = (firstDifferent ? firstDifferent.word : uncommonLetters[0].word);
+                possibleWords = candidates;
+            }
+        }
+
+        function endGame(won) {
+            document.getElementById('keyboard').style.display = 'none';
+            document.querySelector('.game-area').style.display = 'none';
+            
+            const gameOver = document.getElementById('gameOver');
+            gameOver.classList.add('show');
+            gameOver.classList.add(won ? 'win' : 'lose');
+            
+            document.getElementById('gameOverTitle').textContent = won ? 'YOU WON!' : 'YOU LOST!';
+            document.getElementById('finalWord').textContent = currentWord;
+            
+            const attempts = guessedLetters.size;
+            const accuracy = Math.round(((attempts - wrongGuesses) / attempts) * 100);
+            
+            let historyHTML = '<div class="adaptation-history"><h3>📊 How the AI Adapted:</h3>';
+            
+            adaptationHistory.forEach((step, index) => {
+                if (index === 0) {
+                    historyHTML += `
+                        <div class="adaptation-step">
+                            <div class="step-number">Initial Word</div>
+                            <div class="step-word">${step.word}</div>
+                        </div>
+                    `;
+                } else {
+                    const stepClass = step.correct ? 'correct' : '';
+                    const guessClass = step.correct ? 'correct' : 'wrong';
+                    
+                    historyHTML += `
+                        <div class="adaptation-step ${stepClass}">
+                            <div class="step-number">Guess #${index}</div>
+                            <div class="step-guess ${guessClass}">
+                                ${step.correct ? '✓' : '✗'} Guessed: ${step.guess}
+                            </div>
+                    `;
+                    
+                    if (!step.correct && step.oldWord !== step.word) {
+                        historyHTML += `
+                            <div class="word-change">
+                                <span class="old-word">${step.oldWord}</span>
+                                <span class="arrow">→</span>
+                                <span class="step-word">${step.word}</span>
+                            </div>
+                        `;
+                    } else if (!step.correct) {
+                        historyHTML += `<div class="step-word">${step.word} (no change)</div>`;
+                    } else {
+                        historyHTML += `<div class="step-word">${step.word}</div>`;
+                    }
+                    
+                    historyHTML += `</div>`;
+                }
+            });
+            
+            historyHTML += '</div>';
+            
+            document.getElementById('gameStats').innerHTML = `
+                <div style="margin: 20px 0; color: #888;">
+                    <div>Total Guesses: ${attempts}</div>
+                    <div>Accuracy: ${accuracy}%</div>
+                    <div>AI Adaptations: ${wrongGuesses}</div>
+                </div>
+                ${historyHTML}
+            `;
+        }
+
+        // Keyboard input support (A–Z physical keys)
+        function handleKeydown(event) {
+            const key = event.key;
+            if (!key || key.length !== 1) return;
+            const upper = key.toUpperCase();
+            if (upper < 'A' || upper > 'Z') return;
+
+            const keyboardEl = document.getElementById('keyboard');
+            if (!keyboardEl || keyboardEl.style.display === 'none') return; // ignore after game over
+
+            const keyEl = document.getElementById(`key-${upper}`);
+            if (!keyEl || keyEl.classList.contains('used')) return;
+            guessLetter(upper, keyEl);
+        }
+
+        window.addEventListener('keydown', handleKeydown);
+
+        initGame();
+    </script>
+</body>
+</html>
