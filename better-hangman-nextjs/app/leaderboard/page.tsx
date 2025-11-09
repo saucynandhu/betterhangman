@@ -22,17 +22,26 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
   const mode = (params.mode || 'hard') as GameMode;
   const type = (params.type || 'global') as 'global' | 'local' | 'friends';
 
+  // Initialize with proper type
   let entries: LeaderboardEntry[] = [];
-  if (type === 'global') {
-    entries = await getGlobalLeaderboard(mode);
-  } else if (type === 'local') {
-    entries = await getLocalLeaderboard(mode);
-  } else {
-    if (user) {
-      entries = await getFriendsLeaderboard(user.id, mode);
-    } else {
-      entries = [];
+  
+  try {
+    switch (type) {
+      case 'global':
+        entries = await getGlobalLeaderboard(mode);
+        break;
+      case 'local':
+        entries = await getLocalLeaderboard(mode);
+        break;
+      case 'friends':
+        entries = user ? await getFriendsLeaderboard(user.id, mode) : [];
+        break;
+      default:
+        entries = [];
     }
+  } catch (error) {
+    console.error('Error fetching leaderboard data:', error);
+    entries = [];
   }
 
   return (
