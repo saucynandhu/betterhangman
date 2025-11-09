@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { 
   getGlobalLeaderboard, 
   getLocalLeaderboard, 
-  getFriendsLeaderboard, 
+  getFriendsLeaderboard,
   type LeaderboardEntry
 } from '@/lib/db/queries';
 import type { GameMode } from '@/lib/game/types';
