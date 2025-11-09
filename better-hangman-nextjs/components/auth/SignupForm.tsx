@@ -174,7 +174,7 @@ export default function SignupForm() {
 
       // If we get here, the user is signed in
       toast.success('Welcome! Your account has been created successfully.');
-      router.push('/dashboard');
+      router.push('/profile');
     } catch (error: any) {
       console.error('Signup error:', {
         message: error.message,
