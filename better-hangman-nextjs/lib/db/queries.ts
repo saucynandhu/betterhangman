@@ -178,21 +178,30 @@ export async function saveGame(
 export async function getGlobalLeaderboard(mode: GameMode, limit: number = 50): Promise<LeaderboardEntry[]> {
   const supabase = await createClient();
   
-  const winsColumn = `wins_${mode}`;
-  const lossesColumn = `losses_${mode}`;
-  
-  const { data, error } = await supabase
+  // First, get all profiles with their usernames
+  const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
     .select('*')
     .order('xp', { ascending: false })
     .limit(limit);
   
-  if (error || !data) return [];
+  if (profilesError || !profiles) return [];
   
-  return data.map(profile => {
-    const wins = profile[winsColumn as keyof Profile] as number || 0;
-    const losses = profile[lossesColumn as keyof Profile] as number || 0;
-    const total = wins + losses;
+  // Then get all games to calculate stats
+  const { data: games, error: gamesError } = await supabase
+    .from('games')
+    .select('user_id, won, mode');
+    
+  // Calculate wins and losses for each profile
+  const leaderboard = profiles.map(profile => {
+    // Filter games for this user and the specified mode
+    const userGames = games?.filter(g => 
+      g.user_id === profile.id && (!mode || g.mode === mode)
+    ) || [];
+    
+    const wins = userGames.filter(g => g.won).length;
+    const losses = userGames.length - wins;
+    const total = userGames.length;
     
     return {
       profile,
@@ -201,8 +210,11 @@ export async function getGlobalLeaderboard(mode: GameMode, limit: number = 50): 
       win_rate: total > 0 ? (wins / total) * 100 : 0,
       total_games: total,
     };
-  }).sort((a, b) => {
-    // Sort by wins first, then win rate
+  });
+  
+  // Sort by XP first (primary sort), then by wins, then by win rate
+  return leaderboard.sort((a, b) => {
+    if (b.profile.xp !== a.profile.xp) return b.profile.xp - a.profile.xp;
     if (b.wins !== a.wins) return b.wins - a.wins;
     return b.win_rate - a.win_rate;
   });
@@ -227,7 +239,7 @@ export async function getLocalLeaderboard(mode: GameMode, limit: number = 50): P
   
   for (const game of data) {
     const userId = game.user_id;
-    const profile = game.profiles as Profile;
+    const profile = game.profiles as unknown as Profile;
     
     if (!userStats.has(userId)) {
       userStats.set(userId, { wins: 0, losses: 0, profile });
@@ -314,15 +326,22 @@ export async function addFriend(userId: string, friendId: string): Promise<boole
   return !error;
 }
 
+interface FriendRecord {
+  friend_id: string;
+  profiles: Profile;
+}
+
 export async function getFriends(userId: string): Promise<Profile[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('friends')
     .select('friend_id, profiles:friend_id(*)')
-    .eq('user_id', userId);
+    .eq('user_id', userId) as { data: FriendRecord[] | null; error: any };
   
   if (error || !data) return [];
   
-  return data.map(f => f.profiles).filter(Boolean) as Profile[];
+  return data
+    .map(f => f.profiles)
+    .filter((profile): profile is Profile => profile !== null);
 }
 
