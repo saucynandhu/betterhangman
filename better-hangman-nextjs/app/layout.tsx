@@ -1,33 +1,94 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
+import './globals.css';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: "Better Hangman",
-  description: "The ultimate hangman game with AI adaptation",
+  title: 'Better Hangman',
+  description: 'The ultimate hangman game with AI adaptation',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+    <html lang="en" className="dark">
+      <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col`}>
+        <nav className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center">
+                <Link href="/" className="text-xl font-bold text-foreground">
+                  Better Hangman
+                </Link>
+              </div>
+              <div className="flex items-center space-x-4">
+                {user ? (
+                  <>
+                    <Link 
+                      href="/leaderboard" 
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Leaderboard
+                    </Link>
+                    <Link 
+                      href="/profile" 
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Profile
+                    </Link>
+                    <form action="/auth/logout" method="post">
+                      <button 
+                        type="submit"
+                        className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <>
+                    <Link 
+                      href="/login" 
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Login
+                    </Link>
+                    <Link 
+                      href="/signup" 
+                      className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </nav>
+        
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </div>
+        </main>
+        
+        <footer className="border-t border-border py-6 mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="text-center text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Better Hangman. All rights reserved.
+            </p>
+          </div>
+        </footer>
       </body>
     </html>
   );

@@ -1,20 +1,37 @@
 import { createClient } from '@/lib/supabase/server';
 import { getProfile } from '@/lib/db/queries';
+import { createUserProfile } from '@/lib/db/mutations';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
 export default async function ProfilePage() {
+  console.log('Rendering profile page...');
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  console.log('User:', user);
+  if (userError) console.error('Auth error:', userError);
 
   if (!user) {
+    console.log('No user found, redirecting to login');
     redirect('/login');
   }
 
-  const profile = await getProfile(user.id);
+  console.log('Fetching profile for user:', user.id);
+  let profile = await getProfile(user.id);
+  console.log('Profile data:', profile);
 
+  // Create a profile if it doesn't exist
   if (!profile) {
-    redirect('/');
+    console.log('No profile found, creating new profile');
+    try {
+      profile = await createUserProfile(user.id, user.email || '');
+      console.log('Created new profile:', profile);
+    } catch (error) {
+      console.error('Error creating profile:', error);
+      // Redirect to home if we can't create a profile
+      redirect('/');
+    }
   }
 
   const totalWins = profile.wins_hard + profile.wins_impossible + profile.wins_kitten;

@@ -70,12 +70,18 @@ export async function saveGame(
   totalGuesses: number,
   xpGained: number
 ): Promise<void> {
-  if (!userId) return; // Guest games not saved
+  console.log(`[SAVE GAME] Starting saveGame for user ${userId}, mode: ${mode}, won: ${won}`);
+  
+  if (!userId) {
+    console.log('[SAVE GAME] No user ID provided - guest game not saved');
+    return; // Guest games not saved
+  }
   
   const supabase = await createClient();
-  await supabase
-    .from('games')
-    .insert({
+  
+  try {
+    console.log(`[SAVE GAME] Saving game record for user ${userId}`);
+    const gameData = {
       user_id: userId,
       mode,
       word,
@@ -83,7 +89,90 @@ export async function saveGame(
       wrong_guesses: wrongGuesses,
       total_guesses: totalGuesses,
       xp_gained: xpGained,
-    });
+    };
+    
+    console.log('[SAVE GAME] Game data:', JSON.stringify(gameData, null, 2));
+    
+    const { data: gameResult, error: gameError } = await supabase
+      .from('games')
+      .insert(gameData)
+      .select()
+      .single();
+
+    if (gameError) {
+      console.error('[SAVE GAME] Error saving game to database:', gameError);
+      return;
+    }
+    
+    console.log(`[SAVE GAME] Game record saved with ID: ${gameResult?.id}`);
+
+    // Get the user's current profile
+    console.log(`[SAVE GAME] Fetching profile for user ${userId}`);
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('[SAVE GAME] Error fetching profile:', profileError);
+      return;
+    }
+    
+    console.log(`[SAVE GAME] Current profile data:`, JSON.stringify({
+      xp: profile.xp,
+      level: profile.level,
+      wins: profile[`wins_${mode}`],
+      losses: profile[`losses_${mode}`]
+    }, null, 2));
+
+    // Update the appropriate win/loss counter
+    const winField = `wins_${mode}`;
+    const lossField = `losses_${mode}`;
+    
+    const updates: any = {
+      xp: (profile.xp || 0) + xpGained,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (won) {
+      updates[winField] = (profile[winField as keyof Profile] || 0) + 1;
+      console.log(`[SAVE GAME] Incrementing ${winField} to ${updates[winField]}`);
+    } else {
+      updates[lossField] = (profile[lossField as keyof Profile] || 0) + 1;
+      console.log(`[SAVE GAME] Incrementing ${lossField} to ${updates[lossField]}`);
+    }
+    
+    // Calculate new level (1000 XP per level)
+    updates.level = Math.floor(updates.xp / 1000) + 1;
+    console.log(`[SAVE GAME] Updating XP to ${updates.xp}, level to ${updates.level}`);
+    
+    // Update the profile
+    console.log(`[SAVE GAME] Updating profile with:`, JSON.stringify(updates, null, 2));
+    
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('[SAVE GAME] Error updating profile:', updateError);
+    } else {
+      console.log('[SAVE GAME] Successfully updated profile:', JSON.stringify({
+        xp: updatedProfile?.xp,
+        level: updatedProfile?.level,
+        wins: updatedProfile?.[winField],
+        losses: updatedProfile?.[lossField]
+      }, null, 2));
+    }
+    
+  } catch (error) {
+    console.error('[SAVE GAME] Unexpected error in saveGame:', error);
+  } finally {
+    console.log('[SAVE GAME] Completed saveGame function');
+  }
 }
 
 export async function getGlobalLeaderboard(mode: GameMode, limit: number = 50): Promise<LeaderboardEntry[]> {

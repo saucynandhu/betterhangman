@@ -1,20 +1,28 @@
 import { createClient } from '@/lib/supabase/server';
-import { getGlobalLeaderboard, getLocalLeaderboard, getFriendsLeaderboard } from '@/lib/db/queries';
+import { 
+  getGlobalLeaderboard, 
+  getLocalLeaderboard, 
+  getFriendsLeaderboard, 
+  type LeaderboardEntry
+} from '@/lib/db/queries';
+import type { GameMode } from '@/lib/game/types';
 import Leaderboard from '@/components/leaderboard/Leaderboard';
 import Link from 'next/link';
 
-export default async function LeaderboardPage({
-  searchParams,
-}: {
+interface PageProps {
   searchParams: { mode?: string; type?: string };
-}) {
+}
+
+export default async function LeaderboardPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
-  const mode = (searchParams.mode || 'hard') as 'hard' | 'impossible' | 'kitten';
-  const type = (searchParams.type || 'global') as 'global' | 'local' | 'friends';
+  // Ensure searchParams is an object with the expected properties
+  const params = await Promise.resolve(searchParams);
+  const mode = (params.mode || 'hard') as GameMode;
+  const type = (params.type || 'global') as 'global' | 'local' | 'friends';
 
-  let entries;
+  let entries: LeaderboardEntry[];
   if (type === 'global') {
     entries = await getGlobalLeaderboard(mode);
   } else if (type === 'local') {
