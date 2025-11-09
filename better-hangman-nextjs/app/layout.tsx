@@ -84,11 +84,17 @@ export default async function RootLayout({
           </div>
         </main>
         
-        <footer className="border-t border-border py-6 mt-12">
+        <footer className="border-t border-border bg-background/80 py-6 mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <p className="text-center text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Better Hangman. All rights reserved.
-            </p>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Better Hangman {new Date().getFullYear()}
+              </p>
+              <div className="mt-2 text-xs text-muted-foreground/80">
+                <p>Created by nandhu_sauce & zayn</p>
+                <p className="mt-1 text-muted-foreground/60">Chief Muse: nivedya raj</p>
+              </div>
+            </div>
           </div>
         </footer>
       </body>
