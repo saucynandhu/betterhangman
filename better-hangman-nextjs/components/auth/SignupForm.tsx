@@ -15,21 +15,30 @@ export default function SignupForm() {
   const router = useRouter();
   const supabase = createClient();
   
+  // Function to validate email
+  const isValidEmail = (email: string) => {
+    // Simple email validation that works with most common cases
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return re.test(email.trim());
+  };
+
   // Function to validate username
   const isValidUsername = (username: string) => {
-    // Only allow alphanumeric, underscores, and hyphens
-    const usernameRegex = /^[A-Za-z0-9_-]{3,20}$/;
-    if (!usernameRegex.test(username)) {
-      return false;
-    }
-    // Additional validation: Cannot start or end with hyphen/underscore
-    if (/^[_-]|[-_]$/.test(username)) {
-      return false;
-    }
-    // No consecutive hyphens or underscores
-    if (/--|__|_-|-_/.test(username)) {
-      return false;
-    }
+    // First trim the username
+    const trimmed = username.trim();
+    
+    // Check length
+    if (trimmed.length < 3 || trimmed.length > 20) return false;
+    
+    // Check for invalid characters
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) return false;
+    
+    // Cannot start or end with special characters
+    if (/^[_-]|[-_]$/.test(trimmed)) return false;
+    
+    // No consecutive special characters
+    if (/--|__|_-|-_/.test(trimmed)) return false;
+    
     return true;
   };
   
@@ -46,8 +55,26 @@ export default function SignupForm() {
     setError(null);
 
     // Input validation
+    if (!username) {
+      setError('Username is required');
+      setLoading(false);
+      return;
+    }
+    
     if (!isValidUsername(username)) {
-      setError('Username must be 3-20 characters long and can only contain letters, numbers, underscores, or hyphens.');
+      setError('Username must be 3-20 characters long, can only contain letters, numbers, underscores, or hyphens, and cannot start/end with special characters.');
+      setLoading(false);
+      return;
+    }
+    
+    if (!email) {
+      setError('Email is required');
+      setLoading(false);
+      return;
+    }
+    
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address');
       setLoading(false);
       return;
     }
@@ -99,7 +126,7 @@ export default function SignupForm() {
       }
       
       // 3. Sign up the user with username in user_metadata
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
         options: {
@@ -107,10 +134,14 @@ export default function SignupForm() {
             username: trimmedUsername,
             full_name: trimmedUsername,
             name: trimmedUsername,
+            email_confirmed_at: new Date().toISOString()  // Mark email as confirmed
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          // Skip email confirmation
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
+
+      console.log('Signup response:', { signUpError, signUpData });
 
       if (signUpError) {
         console.error('Auth signup error:', signUpError);
@@ -127,9 +158,23 @@ export default function SignupForm() {
         }
       }
 
-      // Show success message
-      toast.success('Account created! Please check your email to verify your account.');
-      router.push('/login?message=check-email');
+      // Sign in the user immediately after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: password,
+      });
+
+      if (signInError) {
+        console.error('Auto sign-in error:', signInError);
+        // If auto sign-in fails, just redirect to login page
+        toast.success('Account created! Please sign in with your credentials.');
+        router.push('/login');
+        return;
+      }
+
+      // If we get here, the user is signed in
+      toast.success('Welcome! Your account has been created successfully.');
+      router.push('/dashboard');
     } catch (error: any) {
       console.error('Signup error:', {
         message: error.message,
@@ -174,8 +219,8 @@ export default function SignupForm() {
           required
           minLength={3}
           maxLength={20}
-          pattern="[A-Za-z0-9_-]+"
-          title="Username can only contain letters, numbers, underscores, and hyphens"
+          pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]"
+          title="3-20 characters, letters/numbers/_- only, no special chars at start/end"
           className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition"
           placeholder="your_username"
         />
