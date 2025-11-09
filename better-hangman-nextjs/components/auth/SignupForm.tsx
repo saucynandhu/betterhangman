@@ -18,13 +18,26 @@ export default function SignupForm() {
   // Function to validate username
   const isValidUsername = (username: string) => {
     // Only allow alphanumeric, underscores, and hyphens
-    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
-    return usernameRegex.test(username);
+    const usernameRegex = /^[A-Za-z0-9_-]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      return false;
+    }
+    // Additional validation: Cannot start or end with hyphen/underscore
+    if (/^[_-]|[-_]$/.test(username)) {
+      return false;
+    }
+    // No consecutive hyphens or underscores
+    if (/--|__|_-|-_/.test(username)) {
+      return false;
+    }
+    return true;
   };
   
   // Function to validate password
   const isValidPassword = (password: string) => {
-    return password.length >= 6;
+    if (password.length < 6) return false;
+    // Require at least one letter and one number
+    return /[A-Za-z]/.test(password) && /[0-9]/.test(password);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -40,7 +53,7 @@ export default function SignupForm() {
     }
 
     if (!isValidPassword(password)) {
-      setError('Password must be at least 6 characters long');
+      setError('Password must be at least 6 characters long and include both letters and numbers');
       setLoading(false);
       return;
     }
@@ -161,12 +174,12 @@ export default function SignupForm() {
           required
           minLength={3}
           maxLength={20}
-          pattern="[a-zA-Z0-9_-]+"
+          pattern="[A-Za-z0-9_-]+"
           title="Username can only contain letters, numbers, underscores, and hyphens"
           className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition"
           placeholder="your_username"
         />
-        <p className="mt-1 text-xs text-gray-400">3-20 characters, letters, numbers, _ or -</p>
+        <p className="mt-1 text-xs text-gray-400">3-20 characters, letters, numbers, _ or - (no special characters, cannot start/end with _ or -)</p>
       </div>
       <div>
         <label htmlFor="email" className="block text-sm font-semibold mb-2 text-gray-300">
@@ -198,9 +211,9 @@ export default function SignupForm() {
           minLength={6}
           autoComplete="new-password"
           className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition"
-          placeholder="Minimum 6 characters"
+          placeholder="At least 6 characters with letters & numbers"
         />
-        <p className="mt-1 text-xs text-gray-400">At least 6 characters</p>
+        <p className="mt-1 text-xs text-gray-400">At least 6 characters with both letters and numbers</p>
       </div>
       <div className="space-y-4">
         <button
