@@ -22,7 +22,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
   const mode = (params.mode || 'hard') as GameMode;
   const type = (params.type || 'global') as 'global' | 'local' | 'friends';
 
-  let entries: LeaderboardEntry[];
+  let entries: LeaderboardEntry[] = [];
   if (type === 'global') {
     entries = await getGlobalLeaderboard(mode);
   } else if (type === 'local') {
