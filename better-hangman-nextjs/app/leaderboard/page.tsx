@@ -99,7 +99,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
               }`}
             >
-              Global
+              All Time
             </Link>
             <Link
               href={`/leaderboard?mode=${mode}&type=local`}
@@ -109,7 +109,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
               }`}
             >
-              Local
+              Weekly
             </Link>
             {user ? (
               <Link
