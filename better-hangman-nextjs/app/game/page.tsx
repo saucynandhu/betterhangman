@@ -180,10 +180,29 @@ export default function GamePage() {
                 </div>
               </div>
               {mode === 'kitten' && (
-                <div className="glass rounded-xl p-4 border border-gray-700/50">
-                  <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">AI Adaptations</div>
-                  <div className="text-2xl font-bold text-pink-400">
+                <div 
+                  className="glass rounded-xl p-4 border border-gray-700/50 hover:border-pink-500/50 transition-colors cursor-pointer group"
+                  onClick={() => {
+                    const adaptations = gameState.adaptationHistory
+                      .filter(h => !h.correct && h.oldWord)
+                      .map((h, i) => `• Changed from "${h.oldWord}" to "${h.word}"`)
+                      .join('\n');
+                    
+                    if (adaptations) {
+                      alert(`AI Adaptations:\n\n${adaptations}`);
+                    } else {
+                      alert('No AI adaptations were made during this game.');
+                    }
+                  }}
+                >
+                  <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">
+                    <span className="group-hover:text-pink-400 transition-colors">AI Adaptations</span>
+                  </div>
+                  <div className="text-2xl font-bold text-pink-400 group-hover:text-pink-300 transition-colors">
                     {gameState.adaptationHistory.filter(h => !h.correct).length}
+                    <span className="text-xs ml-2 text-pink-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      (click to view)
+                    </span>
                   </div>
                 </div>
               )}
